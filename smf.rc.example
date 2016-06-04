@@ -1,6 +1,6 @@
 [smf]
 host = smfhost.example.com
-cookie = SMFCookie463=abcabcabcabcabcabc; PHPSESSID=0abc0abc0abc
+cookie = "SMFCookie463=abcabcabcabcabcabc; PHPSESSID=0abc0abc0abc"
 
 [database]
 database = smf.db
