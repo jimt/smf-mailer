@@ -10,7 +10,6 @@ host = localhost
 port = 25
 ;user = user
 ;pass = pass
-sender = #{from} <noreply@myemail.excample.com>
+sender = <noreply@myemail.example.com>
 to = me@example.com
-
 

@@ -28,18 +28,21 @@ log = new Log Log.DEBUG, fs.createWriteStream 'smf.log',
   flags: 'a'
 
 config = ini.parse(fs.readFileSync('./smf.rc', 'utf-8'))
+exports.config = config
 
 cookie = config.smf.cookie
-jquery = 'http://code.jquery.com/jquery-2.1.1.min.js'
+jquery = fs.readFileSync('./node_modules/jquery/dist/jquery.js', 'utf-8')
 
 db = new sqlite3.Database config.database.database
-nodemailer.SMTP =
+smtpConfig = 
   host: config.email.host
   port: config.email.port
+  ignoreTLS: true
 if config.email.user
-  nodemailer.SMTP.use_authentication = true
-  nodemailer.SMTP.user = config.email.user
-  nodemailer.SMTP.pass = config.email.pass
+  smtpConfig.auth =
+    user: config.email.user
+    pass: config.email.pass
+exports.mailer = nodemailer.createTransport(smtpConfig)
 
 feeds = []
 items = []
@@ -79,10 +82,10 @@ processItems = () ->
     if err
       log.error "Unable to fetch #{item.category}:#{item.title}:", err
       throw err
-    $ = window.$
+    $ = window.jQuery
     # look through all the div.post_wrapper for one that contains
     # a subject for the desired message number
-    subjectno = '"subject_' + u.hash.substr(7) + '"'
+    subjectno = '"subject_' + u.hash.replace('#msg', '') + '"'
     $('div.post_wrapper').each (i, el) ->
       if ($(el).find("h5[id=#{subjectno}]").length)
         $el = $(el)
@@ -100,24 +103,24 @@ processItems = () ->
         log.debug "From: #{from}"
         log.debug "Subject: [#{item.category}] #{unHTMLEntities(item.title)}"
         log.debug "Date: #{isodate} Lastdate: #{isoDateString(lastdate)}"
-        nodemailer.send_mail
-          sender: config.email.sender
-          to: config.email.to
+        exports.mailer.sendMail
+          sender: "#{from} #{exports.config.email.sender}"
+          to: exports.config.email.to
           subject: "[#{item.category}] #{unHTMLEntities($.trim(item.title))}"
           html: "<html><head></head><body><div><p><b>From:</b> #{from}<br /><b>Date:</b> #{item.pubDate}</p><div>#{post}</div><p><a href=\"#{item.link}\">Original message</a></p></div></body></html>"
           (error, success) ->
             window.close()
             if error
-              log.debug "  failed #{isodate}"
+              log.debug ">>failed #{isodate}"
+              log.debug error
             else
-              log.debug "  sent #{isodate} for #{item.category}"
+              log.debug ">>sent #{isodate} for #{item.category}"
               st = db.prepare "UPDATE feeds SET last=(?) WHERE category=(?)"
               st.run isodate, item.category
               st.finalize () ->
                 log.debug "db #{item.category} <- #{isodate}"
                 process.nextTick processItems
                 return
-
 
   if items.length is 0
     process.nextTick processFeeds
@@ -136,7 +139,7 @@ processItems = () ->
   u = url.parse item.link
   log.debug "----- #{item.category}:#{item.title}: #{item.link}"
   headers =
-    host: config.smf.host
+    host: exports.config.smf.host
     cookie: cookie
 
   http.get {host: u.host, port: 80, path: u.pathname+u.search, headers: headers}, (res) ->
@@ -146,7 +149,7 @@ processItems = () ->
     res.on 'end', () ->
       config =
         html: page
-        scripts: [jquery]
+        src: [jquery]
         done: processPage
       jsdom.env config
     res.on 'error', (e) ->
@@ -176,7 +179,7 @@ processFeeds = () ->
   log.debug "= #{feed.category}  #{feed.last}"
   u = url.parse feed.url
   headers =
-    host: config.smf.host
+    host: exports.config.smf.host
     cookie: cookie
   http.get {host: u.host, port: 80, path: u.pathname+u.search, headers: headers}, (res) ->
     rss = ''
