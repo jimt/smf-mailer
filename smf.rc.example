@@ -1,0 +1,16 @@
+[smf]
+host = smfhost.example.com
+cookie = SMFCookie463=abcabcabcabcabcabc; PHPSESSID=0abc0abc0abc
+
+[database]
+database = smf.db
+
+[email]
+host = localhost
+port = 25
+;user = user
+;pass = pass
+sender = #{from} <noreply@myemail.excample.com>
+to = me@example.com
+
+

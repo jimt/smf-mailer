@@ -1,0 +1,25 @@
+{
+  "name": "smf",
+  "version": "1.0.0",
+  "description": "Harvest postings in SMF",
+  "dependencies": {
+    "jquery": "^2.2.0",
+    "jsdom": "9.2.x",
+    "log": "^1.4.0",
+    "nodemailer": "^2.4.2",
+    "sqlite3": "^3.1.4",
+    "xml2json": "^0.9.1",
+    "ini": "1.3.x"
+  },
+  "devDependencies": {
+    "coffee-script": "1.10"
+  },
+  "scripts": {
+    "prepublish": "coffee -c smf.coffee",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "main": "smf.js",
+  "author": "Jim Tittsler <jimt@onjapan.net>",
+  "license": "MIT",
+  "engines": { "node": "6" }
+}
