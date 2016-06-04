@@ -104,7 +104,7 @@ processItems = () ->
         log.debug "Subject: [#{item.category}] #{unHTMLEntities(item.title)}"
         log.debug "Date: #{isodate} Lastdate: #{isoDateString(lastdate)}"
         exports.mailer.sendMail
-          sender: "#{from} #{exports.config.email.sender}"
+          from: "\"#{from}\" #{exports.config.email.sender}"
           to: exports.config.email.to
           subject: "[#{item.category}] #{unHTMLEntities($.trim(item.title))}"
           html: "<html><head></head><body><div><p><b>From:</b> #{from}<br /><b>Date:</b> #{item.pubDate}</p><div>#{post}</div><p><a href=\"#{item.link}\">Original message</a></p></div></body></html>"

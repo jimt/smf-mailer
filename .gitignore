@@ -3,7 +3,7 @@ smf.js
 # sqlite databases
 *.db
 # log files
-*.log
+*.log*
 # editor debris
 *~
 .#*
