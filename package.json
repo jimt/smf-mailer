@@ -19,6 +19,7 @@
   },
   "main": "smf.js",
   "author": "Jim Tittsler <jimt@onjapan.net>",
+  "repository": "jimt/smf",
   "license": "MIT",
   "engines": { "node": "6" }
 }
