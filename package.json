@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "description": "Harvest postings in SMF",
   "dependencies": {
-    "jquery": "^2.2.0",
-    "jsdom": "9.2.x",
+    "cheerio": "0.20",
     "log": "^1.4.0",
     "nodemailer": "^2.4.2",
     "sqlite3": "^3.1.4",

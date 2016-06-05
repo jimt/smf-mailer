@@ -19,7 +19,7 @@ http = require 'http'
 process = require 'process'
 url = require 'url'
 parser = require 'xml2json'
-jsdom = require 'jsdom'
+cheerio = require 'cheerio'
 nodemailer = require 'nodemailer'
 fs = require 'fs'
 ini = require 'ini'
@@ -78,49 +78,45 @@ isoDateString = (d) ->
   pad(d.getUTCSeconds()) + 'Z'
 
 processItems = () ->
-  processPage = (err, window) ->
-    if err
-      log.error "Unable to fetch #{item.category}:#{item.title}:", err
-      throw err
-    $ = window.jQuery
+  processPage = (page) ->
+    $ = cheerio.load page
     # look through all the div.post_wrapper for one that contains
     # a subject for the desired message number
-    subjectno = '"subject_' + u.hash.replace('#msg', '') + '"'
-    $('div.post_wrapper').each (i, el) ->
-      if ($(el).find("h5[id=#{subjectno}]").length)
-        $el = $(el)
-        from = $('div.poster a[title^="View the profile of"]:first', $el).text()
-        $post = $('div.post:first', $el)
-        $('div.quote', $post).attr('style', 'color: #000; background-color: #d7daec; margin: 1px; padding: 6px; font-size: 1em; line-height: 1.5em; font-style: italic; font-family: Georgia, Times, serif;')
-        $('div.quoteheader,div.codeheader', $post).attr('style', 'color: #000; text-decoration: none; font-style: normal; font-weight: bold; font-size: 1em; line-height: 1.2em; padding-bottom: 4px;')
-        $('.meaction', $post).attr('style', 'color: red;')
-        $('embed', $post).each (i) ->
-          src = decodeURIComponent $(this).attr('src')
-          log.debug "    embed: #{src}"
-          $(this).replaceWith "<p><a href=\"#{src}\">#{src}</a></p>"
-        post = $post.html()
-        isodate = isoDateString(d)
-        log.debug "From: #{from}"
-        log.debug "Subject: [#{item.category}] #{unHTMLEntities(item.title)}"
-        log.debug "Date: #{isodate} Lastdate: #{isoDateString(lastdate)}"
-        exports.mailer.sendMail
-          from: "\"#{from}\" #{exports.config.email.sender}"
-          to: exports.config.email.to
-          subject: "[#{item.category}] #{unHTMLEntities($.trim(item.title))}"
-          html: "<html><head></head><body><div><p><b>From:</b> #{from}<br /><b>Date:</b> #{item.pubDate}</p><div>#{post}</div><p><a href=\"#{item.link}\">Original message</a></p></div></body></html>"
-          (error, success) ->
-            window.close()
-            if error
-              log.debug ">>failed #{isodate}"
-              log.debug error
-            else
-              log.debug ">>sent #{isodate} for #{item.category}"
-              st = db.prepare "UPDATE feeds SET last=(?) WHERE category=(?)"
-              st.run isodate, item.category
-              st.finalize () ->
-                log.debug "db #{item.category} <- #{isodate}"
-                process.nextTick processItems
-                return
+    $h5 = $("#subject_#{u.hash.replace('#msg', '')}")
+    $el = $h5.closest('.post_wrapper')
+    from = $el.find('div.poster a[title^="View the profile of"]').eq(0).text()
+    $post = $el.find('div.post').eq(0)
+    $('div.quote', $post).attr('style', 'color: #000; background-color: #d7daec; margin: 1px; padding: 6px; font-size: 1em; line-height: 1.5em; font-style: italic; font-family: Georgia, Times, serif;')
+    $('div.quoteheader,div.codeheader', $post).attr('style', 'color: #000; text-decoration: none; font-style: normal; font-weight: bold; font-size: 1em; line-height: 1.2em; padding-bottom: 4px;')
+    $('.meaction', $post).attr('style', 'color: red;')
+    $('embed', $post).each (i) ->
+      src = decodeURIComponent $(this).attr('src')
+      log.debug "    embed: #{src}"
+      $(this).replaceWith "<p><a href=\"#{src}\">#{src}</a></p>"
+    post = $post.html()
+    isodate = isoDateString(d)
+    log.debug "From: #{from}"
+    log.debug "Subject: [#{item.category}] #{unHTMLEntities(item.title)}"
+    log.debug "Date: #{isodate} Lastdate: #{isoDateString(lastdate)}"
+    exports.mailer.sendMail
+      from: "\"#{from}\" #{exports.config.email.sender}"
+      to: exports.config.email.to
+      subject: "[#{item.category}] #{unHTMLEntities(item.title.trim())}"
+      html: "<html><head></head><body><div><p><b>From:</b> #{from}<br /><b>Date:</b> #{item.pubDate}</p><div>#{post}</div><p><a href=\"#{item.link}\">Original message</a></p></div></body></html>"
+      (error, success) ->
+        window.close()
+        if error
+          log.debug ">>failed #{isodate}"
+          log.debug error
+          process.exit(1)
+        else
+          log.debug ">>sent #{isodate} for #{item.category}"
+          st = db.prepare "UPDATE feeds SET last=(?) WHERE category=(?)"
+          st.run isodate, item.category
+          st.finalize () ->
+            log.debug "db #{item.category} <- #{isodate}"
+            process.nextTick processItems
+            return
 
   if items.length is 0
     process.nextTick processFeeds
@@ -147,11 +143,7 @@ processItems = () ->
     res.on 'data', (chunk) ->
       page += chunk
     res.on 'end', () ->
-      config =
-        html: page
-        src: [jquery]
-        done: processPage
-      jsdom.env config
+      processPage page
     res.on 'error', (e) ->
       log.error "unable to fetch page #{item.link}: #{e.message}"
 
