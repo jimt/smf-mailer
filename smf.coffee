@@ -31,7 +31,6 @@ config = ini.parse(fs.readFileSync('./smf.rc', 'utf-8'))
 exports.config = config
 
 cookie = config.smf.cookie
-jquery = fs.readFileSync('./node_modules/jquery/dist/jquery.js', 'utf-8')
 
 db = new sqlite3.Database config.database.database
 smtpConfig = 
@@ -104,7 +103,6 @@ processItems = () ->
       subject: "[#{item.category}] #{unHTMLEntities(item.title.trim())}"
       html: "<html><head></head><body><div><p><b>From:</b> #{from}<br /><b>Date:</b> #{item.pubDate}</p><div>#{post}</div><p><a href=\"#{item.link}\">Original message</a></p></div></body></html>"
       (error, success) ->
-        window.close()
         if error
           log.debug ">>failed #{isodate}"
           log.debug error
