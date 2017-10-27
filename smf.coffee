@@ -146,6 +146,8 @@ processItems = () ->
       log.error "unable to fetch page #{item.link}: #{e.message}"
 
 processRSS = (rss) ->
+  # sanitize string, removing spurious control characters
+  rss = rss.replace(/\x1f/g, '')
   try
     j = parser.toJson rss, object: true
     items = j.rss?.channel?.item
