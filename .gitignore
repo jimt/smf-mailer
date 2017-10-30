@@ -1,5 +1,3 @@
-# compiled coffeescript
-smf.js
 # sqlite databases
 *.db
 # log files

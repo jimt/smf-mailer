@@ -1,6 +1,6 @@
 {
   "name": "smf",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Harvest postings in SMF",
   "dependencies": {
     "cheerio": "^0.20.0",
@@ -10,11 +10,7 @@
     "sqlite3": "^3.1.13",
     "xml2json": "^0.9.2"
   },
-  "devDependencies": {
-    "coffee-script": "1.10"
-  },
   "scripts": {
-    "prepublish": "coffee -c smf.coffee",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "main": "smf.js",
