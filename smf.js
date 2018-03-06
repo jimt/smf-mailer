@@ -2,7 +2,7 @@
 smf - read Simple Machine Forum RSS feeds & mail the articles
       for SMF 2.0.x
 
-Copyright 2011-2017 James Tittsler
+Copyright 2011-2018 James Tittsler
 @license MIT
 */
 
@@ -14,27 +14,25 @@ Copyright 2011-2017 James Tittsler
 //       mail message
 //       record new last for feed
 
-let sqlite3 = require('sqlite3').verbose();
-let http = require('http');
-let process = require('process');
-let url = require('url');
-let parser = require('xml2json');
-let cheerio = require('cheerio');
-let nodemailer = require('nodemailer');
-let fs = require('fs');
-let ini = require('ini');
-let Log = require('log');
-let log = new Log(Log.DEBUG, fs.createWriteStream('smf.log',
-  {flags: 'a'})
-);
+let sqlite3 = require("sqlite3").verbose();
+let http = require("http");
+let process = require("process");
+let url = require("url");
+let parser = require("xml2json");
+let cheerio = require("cheerio");
+let nodemailer = require("nodemailer");
+let fs = require("fs");
+let ini = require("ini");
+let Log = require("log");
+let log = new Log(Log.DEBUG, fs.createWriteStream("smf.log", { flags: "a" }));
 
-let config = ini.parse(fs.readFileSync('./smf.rc', 'utf-8'));
+let config = ini.parse(fs.readFileSync("./smf.rc", "utf-8"));
 exports.config = config;
 
 let { cookie } = config.smf;
 
 let db = new sqlite3.Database(config.database.database);
-let smtpConfig = { 
+let smtpConfig = {
   host: config.email.host,
   port: config.email.port,
   ignoreTLS: true
@@ -49,37 +47,41 @@ exports.mailer = nodemailer.createTransport(smtpConfig);
 
 let feeds = [];
 let items = [];
-let lastdate = new Date('1970-1-1');
+let lastdate = new Date("1970-1-1");
 
 let decodeEntity = (m, p1) => String.fromCharCode(parseInt(p1, 10));
 
 let unHTMLEntities = function(a) {
   a = unescape(a);
-  a = a.replace(/&amp;&#35;/g, '&#');
+  a = a.replace(/&amp;&#35;/g, "&#");
   a = a.replace(/&quot;/g, '"');
   a = a.replace(/&apos;/g, "'");
-  a = a.replace(/&lt;/g, '<');
-  a = a.replace(/&gt;/g, '>');
-  a = a.replace(/&amp;/g, '&');
+  a = a.replace(/&lt;/g, "<");
+  a = a.replace(/&gt;/g, ">");
+  a = a.replace(/&amp;/g, "&");
   a = a.replace(/&#(\d+);/g, decodeEntity);
   return a;
 };
 
-let mailFrom = function(a) {
-  a = unescape(a);
-  a = a.replace(/\s/g, '_');
-  return a.replace(/[^A-Za-z0-9._]/g, '');
-};
-
 let isoDateString = function(d) {
-  let pad = function(n) { return (n >= 10) ? n : `0${n}`; };
+  let pad = function(n) {
+    return n >= 10 ? n : `0${n}`;
+  };
 
-  return d.getUTCFullYear() + '-' +
-  pad(d.getUTCMonth()+1) + '-' +
-  pad(d.getUTCDate()) + 'T' +
-  pad(d.getUTCHours()) + ':' +
-  pad(d.getUTCMinutes()) + ':' +
-  pad(d.getUTCSeconds()) + 'Z';
+  return (
+    d.getUTCFullYear() +
+    "-" +
+    pad(d.getUTCMonth() + 1) +
+    "-" +
+    pad(d.getUTCDate()) +
+    "T" +
+    pad(d.getUTCHours()) +
+    ":" +
+    pad(d.getUTCMinutes()) +
+    ":" +
+    pad(d.getUTCSeconds()) +
+    "Z"
+  );
 };
 
 var processItems = function() {
@@ -87,30 +89,44 @@ var processItems = function() {
     let $ = cheerio.load(page);
     // look through all the div.post_wrapper for one that contains
     // a subject for the desired message number
-    let $h5 = $(`#subject_${u.hash.replace('#msg', '')}`);
-    let $el = $h5.closest('.post_wrapper');
-    let from = $el.find('div.poster a[title^="View the profile of"]').eq(0).text();
-    let $post = $el.find('div.post').eq(0);
-    $('div.quote', $post).attr('style', 'color: #000; background-color: #d7daec; margin: 1px; padding: 6px; font-size: 1em; line-height: 1.5em; font-style: italic; font-family: Georgia, Times, serif;');
-    $('div.quoteheader,div.codeheader', $post).attr('style', 'color: #000; text-decoration: none; font-style: normal; font-weight: bold; font-size: 1em; line-height: 1.2em; padding-bottom: 4px;');
-    $('.meaction', $post).attr('style', 'color: red;');
-    $('embed', $post).each(function(i) {
-      let src = decodeURIComponent($(this).attr('src'));
+    let $h5 = $(`#subject_${u.hash.replace("#msg", "")}`);
+    let $el = $h5.closest(".post_wrapper");
+    let from = $el
+      .find('div.poster a[title^="View the profile of"]')
+      .eq(0)
+      .text();
+    let $post = $el.find("div.post").eq(0);
+    $("div.quote", $post).attr(
+      "style",
+      "color: #000; background-color: #d7daec; margin: 1px; padding: 6px; font-size: 1em; line-height: 1.5em; font-style: italic; font-family: Georgia, Times, serif;"
+    );
+    $("div.quoteheader,div.codeheader", $post).attr(
+      "style",
+      "color: #000; text-decoration: none; font-style: normal; font-weight: bold; font-size: 1em; line-height: 1.2em; padding-bottom: 4px;"
+    );
+    $(".meaction", $post).attr("style", "color: red;");
+    $("embed", $post).each(function() {
+      let src = decodeURIComponent($(this).attr("src"));
       log.debug(`    embed: ${src}`);
-      return $(this).replaceWith(`<p><a href=\"${src}\">${src}</a></p>`);
+      return $(this).replaceWith(`<p><a href="${src}">${src}</a></p>`);
     });
     let post = $post.html();
     let isodate = isoDateString(d);
     log.debug(`From: ${from}`);
     log.debug(`Subject: [${item.category}] ${unHTMLEntities(item.title)}`);
     log.debug(`Date: ${isodate} Lastdate: ${isoDateString(lastdate)}`);
-    return exports.mailer.sendMail({
-      from: `\"${from}\" ${exports.config.email.sender}`,
-      to: exports.config.email.to,
-      subject: `[${item.category}] ${unHTMLEntities(item.title.trim())}`,
-      html: `<html><head></head><body><div><p><b>From:</b> ${from}<br /><b>Date:</b> ${item.pubDate}</p><div>${post}</div><p><a href=\"${item.link}\">Original message</a></p></div></body></html>`
-    },
-      function(error, success) {
+    return exports.mailer.sendMail(
+      {
+        from: `"${from}" ${exports.config.email.sender}`,
+        to: exports.config.email.to,
+        subject: `[${item.category}] ${unHTMLEntities(item.title.trim())}`,
+        html: `<html><head></head><body><div><p><b>From:</b> ${from}<br /><b>Date:</b> ${
+          item.pubDate
+        }</p><div>${post}</div><p><a href="${
+          item.link
+        }">Original message</a></p></div></body></html>`
+      },
+      function(error) {
         if (error) {
           log.debug(`>>failed ${isodate}`);
           log.debug(error);
@@ -124,7 +140,8 @@ var processItems = function() {
             process.nextTick(processItems);
           });
         }
-    });
+      }
+    );
   };
 
   if (items.length === 0) {
@@ -139,7 +156,7 @@ var processItems = function() {
     return;
   }
 
-  let category = item.category.replace(/&amp;&#35;/g, '&#');
+  let category = item.category.replace(/&amp;&#35;/g, "&#");
   category = category.replace(/&#(\d+);/g, decodeEntity);
   item.category = category;
 
@@ -150,19 +167,24 @@ var processItems = function() {
     cookie
   };
 
-  return http.get({host: u.host, port: 80, path: u.pathname+u.search, headers}, function(res) {
-    let page = '';
-    res.on('data', chunk => page += chunk);
-    res.on('end', () => processPage(page));
-    return res.on('error', e => log.error(`unable to fetch page ${item.link}: ${e.message}`));
-  });
+  return http.get(
+    { host: u.host, port: 80, path: u.pathname + u.search, headers },
+    function(res) {
+      let page = "";
+      res.on("data", chunk => (page += chunk));
+      res.on("end", () => processPage(page));
+      return res.on("error", e =>
+        log.error(`unable to fetch page ${item.link}: ${e.message}`)
+      );
+    }
+  );
 };
 
 let processRSS = function(rss) {
   // sanitize string, removing spurious control characters
-  rss = rss.replace(/\x1f/g, '');
+  rss = rss.replace(/\x1f/g, "");
   try {
-    let j = parser.toJson(rss, {object: true});
+    let j = parser.toJson(rss, { object: true });
     items = __guard__(j.rss != null ? j.rss.channel : undefined, x => x.item);
   } catch (error) {
     console.log("unable to parse RSS", rss);
@@ -191,23 +213,28 @@ var processFeeds = function() {
     host: exports.config.smf.host,
     cookie
   };
-  return http.get({host: u.host, port: 80, path: u.pathname+u.search, headers}, function(res) {
-    let rss = '';
-    res.on('data', chunk => rss += chunk);
-    res.on('end', () => processRSS(rss));
-    return res.on('error', function(e) {
-      console.log("unable to read");
-      return log.error(`unable to read ${row.category}: ${e.message}`);
-    });
-  });
+  return http.get(
+    { host: u.host, port: 80, path: u.pathname + u.search, headers },
+    function(res) {
+      let rss = "";
+      res.on("data", chunk => (rss += chunk));
+      res.on("end", () => processRSS(rss));
+      return res.on("error", function(e) {
+        console.log("unable to read");
+        return log.error(`unable to read ${feed.category}: ${e.message}`);
+      });
+    }
+  );
 };
 
-db.all('SELECT * FROM feeds', function(err, rows) {
+db.all("SELECT * FROM feeds", function(err, rows) {
   rows.forEach(row => feeds.push(row));
-  log.debug('-');
+  log.debug("-");
   return processFeeds();
 });
 
 function __guard__(value, transform) {
-  return (typeof value !== 'undefined' && value !== null) ? transform(value) : undefined;
+  return typeof value !== "undefined" && value !== null
+    ? transform(value)
+    : undefined;
 }
