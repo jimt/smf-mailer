@@ -183,19 +183,16 @@ var processItems = function() {
 let processRSS = function(rss) {
   // sanitize string, removing spurious control characters
   rss = rss.replace(/\x1f/g, "");
+  items = [];
   try {
     let j = parser.toJson(rss, { object: true });
-    items = __guard__(j.rss != null ? j.rss.channel : undefined, x => x.item);
+    if (j.rss && j.rss.channel && j.rss.channel.item) {
+      items = j.rss.channel.item;
+    }
   } catch (error) {
     console.log("unable to parse RSS", rss);
-    items = [];
   }
-  if (items) {
-    log.debug(`*** ${items.length} items`);
-  } else {
-    log.debug(`*** No items array for ${rss}`);
-    items = [];
-  }
+  log.debug(`*** ${items.length} items for {rss}`);
 
   return processItems();
 };
@@ -232,9 +229,3 @@ db.all("SELECT * FROM feeds", function(err, rows) {
   log.debug("-");
   return processFeeds();
 });
-
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
-}
