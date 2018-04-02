@@ -1,5 +1,7 @@
 [smf]
+protocol = http
 host = smfhost.example.com
+port = 80
 cookie = "SMFCookie463=abcabcabcabcabcabc; PHPSESSID=0abc0abc0abc"
 
 [database]
@@ -12,4 +14,3 @@ port = 25
 ;pass = pass
 sender = <noreply@myemail.example.com>
 to = me@example.com
-
