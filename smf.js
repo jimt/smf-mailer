@@ -168,7 +168,13 @@ var processItems = function() {
   };
 
   return http.get(
-    { host: u.host, port: 80, path: u.pathname + u.search, headers },
+    {
+      protocol: u.protocol,
+      host: u.host,
+      port: u.port,
+      path: u.pathname + u.search,
+      headers
+    },
     function(res) {
       let page = "";
       res.on("data", chunk => (page += chunk));
@@ -211,7 +217,13 @@ var processFeeds = function() {
     cookie
   };
   return http.get(
-    { host: u.host, port: 80, path: u.pathname + u.search, headers },
+    {
+      protocol: u.protocol,
+      host: u.host,
+      port: u.port,
+      path: u.pathname + u.search,
+      headers
+    },
     function(res) {
       let rss = "";
       res.on("data", chunk => (rss += chunk));
