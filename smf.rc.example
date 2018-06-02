@@ -14,4 +14,3 @@ port = 25
 ;pass = pass
 sender = <noreply@myemail.example.com>
 to = me@example.com
-
