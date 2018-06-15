@@ -110,6 +110,13 @@ var processItems = function() {
       log.debug(`    embed: ${src}`);
       return $(this).replaceWith(`<p><a href="${src}">${src}</a></p>`);
     });
+    let $attachments = $el.find("div.attachments");
+    if ($attachments) {
+      $attachments.attr("style", "font-size: 0.8em;");
+      $("a", $attachments)
+        .prop("onclick", null);
+      $post.append($attachments);
+    }
     let post = $post.html();
     let isodate = isoDateString(d);
     log.debug(`From: ${from}`);
