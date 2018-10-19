@@ -18,6 +18,6 @@
   "repository": "jimt/smf",
   "license": "MIT",
   "engines": {
-    "node": "8"
+    "node": ">8"
   }
 }
