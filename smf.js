@@ -204,9 +204,7 @@ let processRSS = function(feedurl, rss) {
     }
   } catch (error) {
     console.log("unable to parse RSS at", feedurl);
-    console.log("==========");
-    console.log(rss);
-    console.log("==========");
+    fs.writeFileSync(`${os.tmpdir()}/failed.rss`, rss, {flag: 'a'});
   }
   log.debug(`*** ${items.length} items for {rss}`);
 
