@@ -193,7 +193,7 @@ var processItems = function() {
   );
 };
 
-let processRSS = function(rss) {
+let processRSS = function(feedurl, rss) {
   // sanitize string, removing spurious control characters
   rss = rss.replace(/\x1f/g, "");
   items = [];
@@ -203,7 +203,10 @@ let processRSS = function(rss) {
       items = j.rss.channel.item;
     }
   } catch (error) {
-    console.log("unable to parse RSS", rss);
+    console.log("unable to parse RSS at", feedurl);
+    console.log("==========");
+    console.log(rss);
+    console.log("==========");
   }
   log.debug(`*** ${items.length} items for {rss}`);
 
@@ -234,7 +237,7 @@ var processFeeds = function() {
     function(res) {
       let rss = "";
       res.on("data", chunk => (rss += chunk));
-      res.on("end", () => processRSS(rss));
+      res.on("end", () => processRSS(feed.url, rss));
       return res.on("error", function(e) {
         console.log("unable to read");
         return log.error(`unable to read ${feed.category}: ${e.message}`);
