@@ -195,7 +195,7 @@ var processItems = function() {
 
 let processRSS = function(feedurl, rss) {
   // sanitize string, removing spurious control characters
-  rss = rss.replace(/\x1f/g, "");
+  rss = rss.replace(/[\x01-\x08\x0b\x0c\x0e-\x1f]/g, "");
   items = [];
   try {
     let j = parser.toJson(rss, { object: true });
