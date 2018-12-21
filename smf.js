@@ -130,7 +130,7 @@ var processItems = function() {
         html: `<html><head></head><body><div><p><b>From:</b> ${from}<br /><b>Date:</b> ${
           item.pubDate
         }</p><div>${post}</div><p><a href="${
-          item.link
+          item.link.replace('http:', 'https:')
         }">Original message</a></p></div></body></html>`
       },
       function(error) {
