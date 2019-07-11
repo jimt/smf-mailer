@@ -129,8 +129,8 @@ var processItems = function() {
         subject: `[${item.category}] ${unHTMLEntities(item.title.trim())}`,
         html: `<html><head></head><body><div><p><b>From:</b> ${from}<br /><b>Date:</b> ${
           item.pubDate
-        }</p><div>${post}</div><p><a href="${
-          item.link.replace('http:', 'https:')
+        }</p><div style="max-width:72ch;">${post}</div>
+        <p><a href="${item.link.replace('http:', 'https:')
         }">Original message</a></p></div></body></html>`
       },
       function(error) {
