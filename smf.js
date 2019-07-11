@@ -23,8 +23,12 @@ let cheerio = require("cheerio");
 let nodemailer = require("nodemailer");
 let fs = require("fs");
 let ini = require("ini");
-let Log = require("log");
-let log = new Log(Log.DEBUG, fs.createWriteStream("smf.log", { flags: "a" }));
+const log4js = require("log4js");
+log4js.configure({
+  appenders: { smf: { type: 'file', filename: 'smf.log' } },
+  categories: { default: { appenders: ['smf'], level: 'error' } }
+});
+const log = log4js.getLogger('smf');
 
 let config = ini.parse(fs.readFileSync("./smf.rc", "utf-8"));
 exports.config = config;
