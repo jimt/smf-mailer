@@ -22,6 +22,7 @@ let parser = require("xml2json");
 let cheerio = require("cheerio");
 let nodemailer = require("nodemailer");
 let fs = require("fs");
+let os = require("os");
 let ini = require("ini");
 const log4js = require("log4js");
 log4js.configure({
@@ -208,6 +209,7 @@ let processRSS = function(feedurl, rss) {
     }
   } catch (error) {
     console.log("unable to parse RSS at", feedurl);
+    fs.writeFileSync(`${os.tmpdir()}/failed.rss`, `#### ${new Date().toISOString()} ####\n`, {flag: 'a'});
     fs.writeFileSync(`${os.tmpdir()}/failed.rss`, rss, {flag: 'a'});
   }
   log.debug(`*** ${items.length} items for {rss}`);
