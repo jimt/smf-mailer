@@ -14,6 +14,9 @@ Copyright 2011-2018 James Tittsler
 //       mail message
 //       record new last for feed
 
+const ITEM_FETCH_DELAY = 5000;
+const FEED_FETCH_DELAY = 10000;
+
 let sqlite3 = require("sqlite3").verbose();
 let http = require("http");
 let process = require("process");
@@ -56,6 +59,12 @@ let lastdate = new Date("1970-1-1");
 
 let decodeEntity = (m, p1) => String.fromCharCode(parseInt(p1, 10));
 
+function sleep(ms){
+  return new Promise(resolve=>{
+    setTimeout(resolve,ms);
+  });
+}
+
 let unHTMLEntities = function(a) {
   a = unescape(a);
   a = a.replace(/&amp;&#35;/g, "&#");
@@ -89,7 +98,7 @@ let isoDateString = function(d) {
   );
 };
 
-var processItems = function() {
+async function processItems() {
   let processPage = function(page) {
     let $ = cheerio.load(page);
     // look through all the div.post_wrapper for one that contains
@@ -179,6 +188,7 @@ var processItems = function() {
     cookie
   };
 
+  await sleep(ITEM_FETCH_DELAY);
   return http.get(
     {
       protocol: u.protocol,
@@ -198,7 +208,7 @@ var processItems = function() {
   );
 };
 
-let processRSS = function(feedurl, rss) {
+function processRSS(feedurl, rss) {
   // sanitize string, removing spurious control characters
   rss = rss.replace(/[\x01-\x08\x0b\x0c\x0e-\x1f]/g, "");
   items = [];
@@ -217,7 +227,7 @@ let processRSS = function(feedurl, rss) {
   return processItems();
 };
 
-var processFeeds = function() {
+async function processFeeds() {
   if (feeds.length === 0) {
     db.close();
     return;
@@ -230,6 +240,7 @@ var processFeeds = function() {
     host: exports.config.smf.host,
     cookie
   };
+  await sleep(FEED_FETCH_DELAY);
   return http.get(
     {
       protocol: u.protocol,
