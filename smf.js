@@ -14,8 +14,8 @@ Copyright 2011-2018 James Tittsler
 //       mail message
 //       record new last for feed
 
-const ITEM_FETCH_DELAY = 5000;
-const FEED_FETCH_DELAY = 10000;
+const ITEM_FETCH_DELAY = 1000;
+const FEED_FETCH_DELAY = 5000;
 
 let sqlite3 = require("sqlite3").verbose();
 let http = require("http");
@@ -189,7 +189,7 @@ async function processItems() {
   };
 
   await sleep(ITEM_FETCH_DELAY);
-  return http.get(
+  http.get(
     {
       protocol: u.protocol,
       host: u.host,
@@ -198,10 +198,15 @@ async function processItems() {
       headers
     },
     function(res) {
+      if (res.statusCode != 200) {
+        console.log(`error ${res.statusCode} ${item.category}:${item.title}: ${item.link}`);
+        log.error(`error ${res.statusCode} ${item.category}:${item.title}: ${item.link}`);
+        return;
+      }
       let page = "";
       res.on("data", chunk => (page += chunk));
       res.on("end", () => processPage(page));
-      return res.on("error", e =>
+      res.on("error", e =>
         log.error(`unable to fetch page ${item.link}: ${e.message}`)
       );
     }
@@ -241,7 +246,7 @@ async function processFeeds() {
     cookie
   };
   await sleep(FEED_FETCH_DELAY);
-  return http.get(
+  http.get(
     {
       protocol: u.protocol,
       host: u.host,
@@ -250,12 +255,19 @@ async function processFeeds() {
       headers
     },
     function(res) {
+      if (res.statusCode != 200) {
+        console.log(`error ${res.statusCode} category ${feed.category}`);
+        log.error(`error ${res.statusCode} category ${feed.category}`);
+        process.nextTick(processFeeds);
+        return;
+      }
+
       let rss = "";
       res.on("data", chunk => (rss += chunk));
       res.on("end", () => processRSS(feed.url, rss));
-      return res.on("error", function(e) {
+      res.on("error", function(e) {
         console.log("unable to read");
-        return log.error(`unable to read ${feed.category}: ${e.message}`);
+        log.error(`unable to read ${feed.category}: ${e.message}`);
       });
     }
   );
