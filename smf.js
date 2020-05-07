@@ -2,7 +2,7 @@
 smf - read Simple Machine Forum RSS feeds & mail the articles
       for SMF 2.0.x
 
-Copyright 2011-2018 James Tittsler
+Copyright 2011-2020 James Tittsler
 @license MIT
 */
 
@@ -77,27 +77,6 @@ let unHTMLEntities = function(a) {
   return a;
 };
 
-let isoDateString = function(d) {
-  let pad = function(n) {
-    return n >= 10 ? n : `0${n}`;
-  };
-
-  return (
-    d.getUTCFullYear() +
-    "-" +
-    pad(d.getUTCMonth() + 1) +
-    "-" +
-    pad(d.getUTCDate()) +
-    "T" +
-    pad(d.getUTCHours()) +
-    ":" +
-    pad(d.getUTCMinutes()) +
-    ":" +
-    pad(d.getUTCSeconds()) +
-    "Z"
-  );
-};
-
 async function processItems() {
   let processPage = function(page) {
     let $ = cheerio.load(page);
@@ -132,10 +111,10 @@ async function processItems() {
       $post.append($attachments);
     }
     let post = $post.html();
-    let isodate = isoDateString(d);
+    let isodate = d.toISOString();
     log.debug(`From: ${from}`);
     log.debug(`Subject: [${item.category}] ${unHTMLEntities(item.title)}`);
-    log.debug(`Date: ${isodate} Lastdate: ${isoDateString(lastdate)}`);
+    log.debug(`Date: ${isodate} Lastdate: ${lastdate.toISOString()}`);
     return exports.mailer.sendMail(
       {
         from: `"${from}" ${exports.config.email.sender}`,
