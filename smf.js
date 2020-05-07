@@ -59,13 +59,13 @@ let lastdate = new Date("1970-1-1");
 
 let decodeEntity = (m, p1) => String.fromCharCode(parseInt(p1, 10));
 
-function sleep(ms){
-  return new Promise(resolve=>{
-    setTimeout(resolve,ms);
+function sleep(ms) {
+  return new Promise(resolve => {
+    setTimeout(resolve, ms);
   });
 }
 
-let unHTMLEntities = function(a) {
+let unHTMLEntities = function (a) {
   a = unescape(a);
   a = a.replace(/&amp;&#35;/g, "&#");
   a = a.replace(/&quot;/g, '"');
@@ -78,7 +78,7 @@ let unHTMLEntities = function(a) {
 };
 
 async function processItems() {
-  let processPage = function(page) {
+  let processPage = function (page) {
     let $ = cheerio.load(page);
     // look through all the div.post_wrapper for one that contains
     // a subject for the desired message number
@@ -98,7 +98,7 @@ async function processItems() {
       "color: #000; text-decoration: none; font-style: normal; font-weight: bold; font-size: 1em; line-height: 1.2em; padding-bottom: 4px;"
     );
     $(".meaction", $post).attr("style", "color: red;");
-    $("embed", $post).each(function() {
+    $("embed", $post).each(function () {
       let src = decodeURIComponent($(this).attr("src"));
       log.debug(`    embed: ${src}`);
       return $(this).replaceWith(`<p><a href="${src}">${src}</a></p>`);
@@ -122,11 +122,11 @@ async function processItems() {
         subject: `[${item.category}] ${unHTMLEntities(item.title.trim())}`,
         html: `<html><head></head><body><div><p><b>From:</b> ${from}<br /><b>Date:</b> ${
           item.pubDate
-        }</p><div style="max-width:72ch;">${post}</div>
+          }</p><div style="max-width:72ch;">${post}</div>
         <p><a href="${item.link.replace('http:', 'https:')
-        }">Original message</a></p></div></body></html>`
+          }">Original message</a></p></div></body></html>`
       },
-      function(error) {
+      function (error) {
         if (error) {
           log.debug(`>>failed ${isodate}`);
           log.debug(error);
@@ -135,7 +135,7 @@ async function processItems() {
           log.debug(`>>sent ${isodate} for ${item.category}`);
           let st = db.prepare("UPDATE feeds SET last=(?) WHERE category=(?)");
           st.run(isodate, item.category);
-          return st.finalize(function() {
+          return st.finalize(function () {
             log.debug(`db ${item.category} <- ${isodate}`);
             process.nextTick(processItems);
           });
@@ -176,9 +176,9 @@ async function processItems() {
       path: u.pathname + u.search,
       headers
     },
-    function(res) {
+    function (res) {
       if (res.statusCode != 200) {
-        console.log(`error ${res.statusCode} ${item.category}:${item.title}: ${item.link}`);
+        console.error(`error ${res.statusCode} ${item.category}:${item.title}: ${item.link}`);
         log.error(`error ${res.statusCode} ${item.category}:${item.title}: ${item.link}`);
         return;
       }
@@ -202,9 +202,9 @@ function processRSS(feedurl, rss) {
       items = j.rss.channel.item;
     }
   } catch (error) {
-    console.log("unable to parse RSS at", feedurl);
-    fs.writeFileSync(`${os.tmpdir()}/failed.rss`, `#### ${new Date().toISOString()} ####\n`, {flag: 'a'});
-    fs.writeFileSync(`${os.tmpdir()}/failed.rss`, rss, {flag: 'a'});
+    console.error("unable to parse RSS at", feedurl);
+    fs.writeFileSync(`${os.tmpdir()}/failed.rss`, `#### ${new Date().toISOString()} ####\n`, { flag: 'a' });
+    fs.writeFileSync(`${os.tmpdir()}/failed.rss`, rss, { flag: 'a' });
   }
   log.debug(`*** ${items.length} items for {rss}`);
 
@@ -233,9 +233,9 @@ async function processFeeds() {
       path: u.pathname + u.search,
       headers
     },
-    function(res) {
+    function (res) {
       if (res.statusCode != 200) {
-        console.log(`error ${res.statusCode} category ${feed.category}`);
+        console.error(`error ${res.statusCode} category ${feed.category}`);
         log.error(`error ${res.statusCode} category ${feed.category}`);
         process.nextTick(processFeeds);
         return;
@@ -244,15 +244,15 @@ async function processFeeds() {
       let rss = "";
       res.on("data", chunk => (rss += chunk));
       res.on("end", () => processRSS(feed.url, rss));
-      res.on("error", function(e) {
-        console.log("unable to read");
+      res.on("error", function (e) {
+        console.error("unable to read feed");
         log.error(`unable to read ${feed.category}: ${e.message}`);
       });
     }
   );
 };
 
-db.all("SELECT * FROM feeds", function(err, rows) {
+db.all("SELECT * FROM feeds", function (err, rows) {
   rows.forEach(row => feeds.push(row));
   log.debug("-");
   return processFeeds();
