@@ -1,7 +1,7 @@
 [smf]
-protocol = http
+protocol = https:
 host = smfhost.example.com
-port = 80
+port = 443
 cookie = "SMFCookie463=abcabcabcabcabcabc; PHPSESSID=0abc0abc0abc"
 
 [database]

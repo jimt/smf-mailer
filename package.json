@@ -1,12 +1,12 @@
 {
   "name": "smf",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Harvest postings in SMF",
   "dependencies": {
     "cheerio": "^1.0.0-rc.3",
     "ini": "^1.3.5",
     "log4js": "^6.3.0",
-    "nodemailer": "^6.4.13",
+    "nodemailer": "^6.4.16",
     "sqlite3": "^4.2.0",
     "xml2json": "^0.12.0"
   },

@@ -19,6 +19,7 @@ const FEED_FETCH_DELAY = 5000;
 
 let sqlite3 = require("sqlite3").verbose();
 let http = require("http");
+let https = require("https");
 let process = require("process");
 let url = require("url");
 let parser = require("xml2json");
@@ -35,8 +36,7 @@ log4js.configure({
 const log = log4js.getLogger('smf');
 
 let config = ini.parse(fs.readFileSync("./smf.rc", "utf-8"));
-exports.config = config;
-
+let client = (config.smf.protocol.includes("https") ? https : http);
 let { cookie } = config.smf;
 
 let db = new sqlite3.Database(config.database.database);
@@ -51,7 +51,7 @@ if (config.email.user) {
     pass: config.email.pass
   };
 }
-exports.mailer = nodemailer.createTransport(smtpConfig);
+let mailer = nodemailer.createTransport(smtpConfig);
 
 let feeds = [];
 let items = [];
@@ -115,10 +115,10 @@ async function processItems() {
     log.debug(`From: ${from}`);
     log.debug(`Subject: [${item.category}] ${unHTMLEntities(item.title)}`);
     log.debug(`Date: ${isodate} Lastdate: ${lastdate.toISOString()}`);
-    return exports.mailer.sendMail(
+    return mailer.sendMail(
       {
-        from: `"${from}" ${exports.config.email.sender}`,
-        to: exports.config.email.to,
+        from: `"${from}" ${config.email.sender}`,
+        to: config.email.to,
         subject: `[${item.category}] ${unHTMLEntities(item.title.trim())}`,
         html: `<html><head></head><body><div><p><b>From:</b> ${from}<br /><b>Date:</b> ${
           item.pubDate
@@ -163,14 +163,13 @@ async function processItems() {
   var u = url.parse(item.link);
   log.debug(`----- ${item.category}:${item.title}: ${item.link}`);
   let headers = {
-    host: exports.config.smf.host,
+    host: config.smf.host,
     cookie
   };
 
   await sleep(ITEM_FETCH_DELAY);
-  http.get(
+  client.get(
     {
-      protocol: u.protocol,
       host: u.host,
       port: u.port,
       path: u.pathname + u.search,
@@ -222,11 +221,11 @@ async function processFeeds() {
   log.debug(`= ${feed.category}  ${feed.last}`);
   let u = url.parse(feed.url);
   let headers = {
-    host: exports.config.smf.host,
+    host: config.smf.host,
     cookie
   };
   await sleep(FEED_FETCH_DELAY);
-  http.get(
+  client.get(
     {
       protocol: u.protocol,
       host: u.host,
