@@ -1,3 +1,4 @@
+// @ts-check
 /*
 smf - read Simple Machine Forum RSS feeds & mail the articles
       for SMF 2.0.x
@@ -120,8 +121,7 @@ async function processItems() {
         from: `"${from}" ${config.email.sender}`,
         to: config.email.to,
         subject: `[${item.category}] ${unHTMLEntities(item.title.trim())}`,
-        html: `<html><head></head><body><div><p><b>From:</b> ${from}<br /><b>Date:</b> ${
-          item.pubDate
+        html: `<html><head></head><body><div><p><b>From:</b> ${from}<br /><b>Date:</b> ${item.pubDate
           }</p><div style="max-width:72ch;">${post}</div>
         <p><a href="${item.link.replace('http:', 'https:')
           }">Original message</a></p></div></body></html>`
@@ -198,7 +198,9 @@ function processRSS(feedurl, rss) {
   items = [];
   try {
     let j = parser.toJson(rss, { object: true });
+    // @ts-ignore
     if (j.rss && j.rss.channel && j.rss.channel.item) {
+      // @ts-ignore
       items = j.rss.channel.item;
     }
   } catch (error) {
