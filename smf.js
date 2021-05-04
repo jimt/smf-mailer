@@ -3,7 +3,7 @@
 smf - read Simple Machine Forum RSS feeds & mail the articles
       for SMF 2.0.x
 
-Copyright 2011-2020 James Tittsler
+Copyright 2011-2021 James Tittsler
 @license MIT
 */
 
@@ -60,13 +60,19 @@ let lastdate = new Date("1970-1-1");
 
 let decodeEntity = (m, p1) => String.fromCharCode(parseInt(p1, 10));
 
+/**
+ * @param {number} ms
+ */
 function sleep(ms) {
   return new Promise(resolve => {
     setTimeout(resolve, ms);
   });
 }
 
-let unHTMLEntities = function (a) {
+/**
+ * @param {string} a
+ */
+function unHTMLEntities(a) {
   a = unescape(a);
   a = a.replace(/&amp;&#35;/g, "&#");
   a = a.replace(/&quot;/g, '"');
@@ -191,6 +197,10 @@ async function processItems() {
   );
 };
 
+/**
+ * @param {string} feedurl
+ * @param {string} rss
+ */
 function processRSS(feedurl, rss) {
   // sanitize string, removing spurious control characters
   rss = rss.replace(/[\x01-\x08\x0b\x0c\x0e-\x1f]/g, "");
@@ -205,6 +215,7 @@ function processRSS(feedurl, rss) {
     }
   } catch (error) {
     console.error("unable to parse RSS at", feedurl);
+    log.error("unable to parse RSS at", feedurl);
     fs.writeFileSync(`${os.tmpdir()}/failed.rss`, `#### ${new Date().toISOString()} ####\n`, { flag: 'a' });
     fs.writeFileSync(`${os.tmpdir()}/failed.rss`, rss, { flag: 'a' });
   }
