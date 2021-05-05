@@ -13,7 +13,8 @@ It was originally written in
 [CoffeeScript](http://coffeescript.org/) but
 has been
 [Decaffeinated](http://decaffeinate-project.org/)
-to modern JavaScript.
+to modern JavaScript. And then later converted
+to use async/await.
 
 ## License
 

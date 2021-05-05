@@ -15,32 +15,19 @@ Copyright 2011-2021 James Tittsler
 //       mail message
 //       record new last for feed
 
-const ITEM_FETCH_DELAY = 1000;
-const FEED_FETCH_DELAY = 5000;
-
-let sqlite3 = require("sqlite3").verbose();
-let http = require("http");
-let https = require("https");
-let process = require("process");
-let url = require("url");
-let parser = require("xml2json");
-let cheerio = require("cheerio");
-let nodemailer = require("nodemailer");
-let fs = require("fs");
-let os = require("os");
-let ini = require("ini");
-const log4js = require("log4js");
-log4js.configure({
-  appenders: { smf: { type: 'file', filename: 'smf.log' } },
-  categories: { default: { appenders: ['smf'], level: 'error' } }
-});
-const log = log4js.getLogger('smf');
-
-let config = ini.parse(fs.readFileSync("./smf.rc", "utf-8"));
-let client = (config.smf.protocol.includes("https") ? https : http);
-let { cookie } = config.smf;
-
-let db = new sqlite3.Database(config.database.database);
+const sqlite3 = require('sqlite3');
+const sqlite = require("sqlite");
+const { promisify } = require('util');
+const axios = require('axios').default;
+const process = require("process");
+const url = require("url");
+const parser = require("xml2json");
+const cheerio = require("cheerio");
+const nodemailer = require("nodemailer");
+const fs = require("fs");
+const os = require("os");
+const ini = require("ini");
+var config = ini.parse(fs.readFileSync("./smf.rc", "utf-8"));
 let smtpConfig = {
   host: config.email.host,
   port: config.email.port,
@@ -53,6 +40,13 @@ if (config.email.user) {
   };
 }
 let mailer = nodemailer.createTransport(smtpConfig);
+
+const log4js = require("log4js");
+log4js.configure({
+  appenders: { smf: { type: 'file', filename: 'smf.log' } },
+  categories: { default: { appenders: ['smf'], level: config.smf.loglevel } }
+});
+const log = log4js.getLogger('smf');
 
 let feeds = [];
 let items = [];
@@ -84,128 +78,107 @@ function unHTMLEntities(a) {
   return a;
 };
 
-async function processItems() {
-  let processPage = function (page) {
-    let $ = cheerio.load(page);
-    // look through all the div.post_wrapper for one that contains
-    // a subject for the desired message number
-    let $h5 = $(`#subject_${u.hash.replace("#msg", "")}`);
-    let $el = $h5.closest(".post_wrapper");
-    let from = $el
-      .find('div.poster a[title^="View the profile of"]')
-      .eq(0)
-      .text();
-    let $post = $el.find("div.post").eq(0);
-    $("div.quote", $post).attr(
-      "style",
-      "color: #000; background-color: #d7daec; margin: 1px; padding: 6px; font-size: 1em; line-height: 1.5em; font-style: italic; font-family: Georgia, Times, serif;"
-    );
-    $("div.quoteheader,div.codeheader", $post).attr(
-      "style",
-      "color: #000; text-decoration: none; font-style: normal; font-weight: bold; font-size: 1em; line-height: 1.2em; padding-bottom: 4px;"
-    );
-    $(".meaction", $post).attr("style", "color: red;");
-    $("embed", $post).each(function () {
-      let src = decodeURIComponent($(this).attr("src"));
-      log.debug(`    embed: ${src}`);
-      return $(this).replaceWith(`<p><a href="${src}">${src}</a></p>`);
-    });
-    let $attachments = $el.find("div.attachments");
-    if ($attachments) {
-      $attachments.attr("style", "font-size: 0.8em;");
-      $("a", $attachments)
-        .prop("onclick", null);
-      $post.append($attachments);
-    }
-    let post = $post.html();
-    let isodate = d.toISOString();
-    log.debug(`From: ${from}`);
-    log.debug(`Subject: [${item.category}] ${unHTMLEntities(item.title)}`);
-    log.debug(`Date: ${isodate} Lastdate: ${lastdate.toISOString()}`);
-    return mailer.sendMail(
-      {
-        from: `"${from}" ${config.email.sender}`,
-        to: config.email.to,
-        subject: `[${item.category}] ${unHTMLEntities(item.title.trim())}`,
-        html: `<html><head></head><body><div><p><b>From:</b> ${from}<br /><b>Date:</b> ${item.pubDate
-          }</p><div style="max-width:72ch;">${post}</div>
-        <p><a href="${item.link.replace('http:', 'https:')
-          }">Original message</a></p></div></body></html>`
-      },
-      function (error) {
-        if (error) {
-          log.debug(`>>failed ${isodate}`);
-          log.debug(error);
-          return process.exit(1);
-        } else {
-          log.debug(`>>sent ${isodate} for ${item.category}`);
-          let st = db.prepare("UPDATE feeds SET last=(?) WHERE category=(?)");
-          st.run(isodate, item.category);
-          return st.finalize(function () {
-            log.debug(`db ${item.category} <- ${isodate}`);
-            process.nextTick(processItems);
-          });
-        }
-      }
-    );
-  };
-
-  if (items.length === 0) {
-    process.nextTick(processFeeds);
-    return;
-  }
-  var item = items.pop();
-
-  var d = new Date(item.pubDate);
-  if (d <= lastdate) {
-    process.nextTick(processItems);
-    return;
-  }
-
-  let category = item.category.replace(/&amp;&#35;/g, "&#");
-  category = category.replace(/&#(\d+);/g, decodeEntity);
-  item.category = category;
-
-  var u = url.parse(item.link);
-  log.debug(`----- ${item.category}:${item.title}: ${item.link}`);
-  let headers = {
-    host: config.smf.host,
-    cookie
-  };
-
-  await sleep(ITEM_FETCH_DELAY);
-  client.get(
-    {
-      host: u.host,
-      port: u.port,
-      path: u.pathname + u.search,
-      headers
-    },
-    function (res) {
-      if (res.statusCode != 200) {
-        console.error(`error ${res.statusCode} ${item.category}:${item.title}: ${item.link}`);
-        log.error(`error ${res.statusCode} ${item.category}:${item.title}: ${item.link}`);
-        return;
-      }
-      let page = "";
-      res.on("data", chunk => (page += chunk));
-      res.on("end", () => processPage(page));
-      res.on("error", e =>
-        log.error(`unable to fetch page ${item.link}: ${e.message}`)
-      );
-    }
+async function processPage(item, page) {
+  let url = item.link;
+  let msgid = url.replace(/.*#msg/, '');
+  let $ = cheerio.load(page);
+  // look through all the div.post_wrapper for one that contains
+  // a subject for the desired message number
+  let $h5 = $(`#subject_${msgid}`);
+  let $el = $h5.closest(".post_wrapper");
+  let from = $el
+    .find('div.poster a[title^="View the profile of"]')
+    .eq(0)
+    .text();
+  let $post = $el.find("div.post").eq(0);
+  $("div.quote", $post).attr(
+    "style",
+    "color: #000; background-color: #d7daec; margin: 1px; padding: 6px; font-size: 1em; line-height: 1.5em; font-style: italic; font-family: Georgia, Times, serif;"
   );
-};
+  $("div.quoteheader,div.codeheader", $post).attr(
+    "style",
+    "color: #000; text-decoration: none; font-style: normal; font-weight: bold; font-size: 1em; line-height: 1.2em; padding-bottom: 4px;"
+  );
+  $(".meaction", $post).attr("style", "color: red;");
+  $("embed", $post).each(function () {
+    let src = decodeURIComponent($(this).attr("src"));
+    log.debug(`    embed: ${src}`);
+    return $(this).replaceWith(`<p><a href="${src}">${src}</a></p>`);
+  });
+  let $attachments = $el.find("div.attachments");
+  if ($attachments) {
+    $attachments.attr("style", "font-size: 0.8em;");
+    $("a", $attachments)
+      .prop("onclick", null);
+    $post.append($attachments);
+  }
+  let post = $post.html();
+  let d = new Date(item.pubDate);
+  let isodate = d.toISOString();
+  let originalLink = item.link;
+  if (config.smf.protocol.startsWith('https')) {
+    originalLink = originalLink.replace('http:', 'https:');
+  }
+  log.debug(`From: ${from}`);
+  log.debug(`Subject: [${item.category}] ${unHTMLEntities(item.title)}`);
+  log.debug(`Date: ${isodate} Lastdate: ${lastdate.toISOString()}`);
+  mailer.sendMail(
+    {
+      from: `"${from}" ${config.email.sender}`,
+      to: config.email.to,
+      subject: `[${item.category}] ${unHTMLEntities(item.title.trim())}`,
+      html: `<html><head></head><body><div><p><b>From:</b> ${from}<br /><b>Date:</b> ${item.pubDate
+        }</p><div style="max-width:72ch;">${post}</div>
+      <p><a href="${originalLink}">Original message</a></p></div></body></html>`
+    },
+    function (error) {
+      if (error) {
+        log.debug(`>>failed to send mail ${msgid}`);
+        log.debug(error);
+        process.exit(1);
+      }
+    });
+  log.debug(`>>sent ${msgid} (${isodate}) for ${item.category}`);
+  await config.db.run("UPDATE feeds SET last=(?) WHERE category=(?)",
+    isodate, item.category);
+}
 
 /**
- * @param {string} feedurl
+ * @param {string} category
+ * @param {any} items
+ */
+async function processItems(category, items) {
+  for (let item of items) {
+    let d = new Date(item.pubDate);
+    if (d <= lastdate) {
+      continue;   // skip messages we have seen before
+    }
+
+    await sleep(config.smf.item_fetch_delay || 500);
+    try {
+      const res = await axios.get(item.link, {
+        headers: {
+          Cookie: config.smf.cookie
+        }
+      })
+      processPage(item, res.data);
+    } catch (error) {
+      console.error(`processItem ${category} fetch error ${error}`);
+      log.error(`processItem ${category} fetch error ${error}`);
+      return;     // give up on category if there are problems fetching
+    }
+  }
+}
+
+/**
+ * @param {string} category
  * @param {string} rss
  */
-function processRSS(feedurl, rss) {
+async function processRSS(category, rss) {
+  let items = [];
   // sanitize string, removing spurious control characters
   rss = rss.replace(/[\x01-\x08\x0b\x0c\x0e-\x1f]/g, "");
   rss = rss.replace(/<:br\s*\/></, "");   // bizzare special case of <:br /><
-  items = [];
   try {
     let j = parser.toJson(rss, { object: true });
     // @ts-ignore
@@ -214,59 +187,45 @@ function processRSS(feedurl, rss) {
       items = j.rss.channel.item;
     }
   } catch (error) {
-    console.error("unable to parse RSS at", feedurl);
-    log.error("unable to parse RSS at", feedurl);
+    console.error("unable to parse RSS at", category);
+    log.error("unable to parse RSS at", category);
     fs.writeFileSync(`${os.tmpdir()}/failed.rss`, `#### ${new Date().toISOString()} ####\n`, { flag: 'a' });
     fs.writeFileSync(`${os.tmpdir()}/failed.rss`, rss, { flag: 'a' });
-  }
-  log.debug(`*** ${items.length} items for {rss}`);
-
-  return processItems();
-};
-
-async function processFeeds() {
-  if (feeds.length === 0) {
-    db.close();
     return;
   }
-  let feed = feeds.shift();
+
+  await processItems(category, items.reverse());
+}
+
+async function processFeed(feed) {
   lastdate = new Date(feed.last);
   log.debug(`= ${feed.category}  ${feed.last}`);
-  let u = url.parse(feed.url);
-  let headers = {
-    host: config.smf.host,
-    cookie
-  };
-  await sleep(FEED_FETCH_DELAY);
-  client.get(
-    {
-      protocol: u.protocol,
-      host: u.host,
-      port: u.port,
-      path: u.pathname + u.search,
-      headers
-    },
-    function (res) {
-      if (res.statusCode != 200) {
-        console.error(`error ${res.statusCode} category ${feed.category}`);
-        log.error(`error ${res.statusCode} category ${feed.category}`);
-        process.nextTick(processFeeds);
-        return;
+  await sleep(config.smf.feed_fetch_delay || 500);
+  try {
+    const res = await axios.get(feed.url, {
+      headers: {
+        Cookie: config.smf.cookie
       }
+    })
+    await processRSS(feed.category, res.data);
+  } catch (error) {
+    console.error(`processFeed ${feed.category} error ${error}`);
+    log.error(`processFeed ${feed.category} error ${error}`);
+    return;
+  }
+}
 
-      let rss = "";
-      res.on("data", chunk => (rss += chunk));
-      res.on("end", () => processRSS(feed.url, rss));
-      res.on("error", function (e) {
-        console.error("unable to read feed");
-        log.error(`unable to read ${feed.category}: ${e.message}`);
-      });
-    }
-  );
-};
+async function smf() {
+  const db = await sqlite.open({
+    filename: config.database.database,
+    driver: sqlite3.Database
+  });
+  config.db = db;
 
-db.all("SELECT * FROM feeds", function (err, rows) {
-  rows.forEach(row => feeds.push(row));
-  log.debug("-");
-  return processFeeds();
-});
+  const rows = await db.all("SELECT * FROM feeds");
+  for (const row of rows) {
+    await processFeed(row);
+  }
+}
+
+smf();

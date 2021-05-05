@@ -2,7 +2,10 @@
 protocol = https:
 host = smfhost.example.com
 port = 443
-cookie = "SMFCookie463=abcabcabcabcabcabc; PHPSESSID=0abc0abc0abc"
+cookie = "SMFCookie463=abcabcabcabcabcabc; PHPSESSID=0abc0abc0abc;"
+feed_fetch_delay = 1000
+item_fetch_delay = 1000
+loglevel = error
 
 [database]
 database = smf.db
