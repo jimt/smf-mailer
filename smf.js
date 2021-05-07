@@ -17,7 +17,6 @@ Copyright 2011-2021 James Tittsler
 
 const sqlite3 = require('sqlite3');
 const sqlite = require("sqlite");
-const { promisify } = require('util');
 const axios = require('axios').default;
 const process = require("process");
 const url = require("url");

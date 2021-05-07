@@ -1,6 +1,6 @@
 {
   "name": "smf",
-  "version": "3.00.0",
+  "version": "3.00.1",
   "description": "Harvest postings from SMF",
   "dependencies": {
     "axios": "^0.21.1",
