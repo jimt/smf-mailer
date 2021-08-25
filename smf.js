@@ -1,26 +1,24 @@
 // @ts-check
 /*
-smf - read Simple Machine Forum RSS feeds & mail the articles
+smf - read Simple Machine Forum Recent Posts & mail the articles
       for SMF 2.0.x
 
 Copyright 2011-2021 James Tittsler
 @license MIT
 */
 
-// for each feed in database
-//   fetch URL, category, lasttime
-//   for each message in feed
-//     if new
-//       fetch message
-//       mail message
-//       record new last for feed
+// get message high water mark
+// for each message on paginated Recent Posts page(s)
+//   if message in board of interest
+//     format mail message and push on stack
+// record high water mark
+// for each message on stack
+//    pop and email
+//    delay
 
-const sqlite3 = require('sqlite3');
-const sqlite = require("sqlite");
 const axios = require('axios').default;
 const process = require("process");
 const url = require("url");
-const parser = require("xml2json");
 const cheerio = require("cheerio");
 const nodemailer = require("nodemailer");
 const fs = require("fs");
@@ -60,6 +58,37 @@ function sleep(ms) {
   return new Promise(resolve => {
     setTimeout(resolve, ms);
   });
+}
+
+function getHighWaterMark() {
+  let highwater;
+  try {
+    highwater = parseInt(fs.readFileSync(config.smf.highwatermark, 'utf-8'), 10);
+  } catch (err) {
+    console.error(`unable to read high water mark from ${config.smf.highwatermark}`);
+    log.error(`unable to read high water mark from ${config.smf.highwatermark}`);
+    process.exit(1);
+  }
+
+  console.log(`high water mark ${highwater}`);
+  if (isNaN(highwater) || highwater == 0) {
+    console.error('high water mark not set');
+    log.error('high water mark not set');
+    process.exit(1);
+  }
+  return highwater;
+}
+
+function setHighWaterMark(highwater) {
+  const highwaters = highwater + "";
+  try {
+    fs.writeFileSync(config.smf.highwatermark, highwaters);
+  } catch (error) {
+    console.error(`Unable to write high water mark to ${config.highwatermark}`);
+    log.error(`Unable to write high water mark to ${config.highwatermark}`);
+    process.exit(4);
+  }
+  return true;
 }
 
 /**
@@ -143,87 +172,86 @@ async function processPage(item, page) {
 }
 
 /**
- * @param {string} category
- * @param {any} items
+ * @returns {Promise<number>}
  */
-async function processItems(category, items) {
-  for (let item of items) {
-    let d = new Date(item.pubDate);
-    if (d <= lastdate) {
-      continue;   // skip messages we have seen before
-    }
-
-    await sleep(config.smf.item_fetch_delay || 500);
-    try {
-      const res = await axios.get(item.link, {
-        headers: {
-          Cookie: config.smf.cookie
-        }
-      })
-      processPage(item, res.data);
-    } catch (error) {
-      console.error(`processItem ${category} fetch error ${error}`);
-      log.error(`processItem ${category} fetch error ${error}`);
-      return;     // give up on category if there are problems fetching
-    }
-  }
-}
-
-/**
- * @param {string} category
- * @param {string} rss
- */
-async function processRSS(category, rss) {
-  let items = [];
-  // sanitize string, removing spurious control characters
-  rss = rss.replace(/[\x01-\x08\x0b\x0c\x0e-\x1f]/g, "");
-  rss = rss.replace(/<:br\s*\/></, "");   // bizzare special case of <:br /><
-  try {
-    let j = parser.toJson(rss, { object: true });
-    // @ts-ignore
-    if (j.rss && j.rss.channel && j.rss.channel.item) {
-      // @ts-ignore
-      items = j.rss.channel.item;
-    }
-  } catch (error) {
-    console.error("unable to parse RSS at", category);
-    log.error("unable to parse RSS at", category);
-    fs.writeFileSync(`${os.tmpdir()}/failed.rss`, `#### ${new Date().toISOString()} ####\n`, { flag: 'a' });
-    fs.writeFileSync(`${os.tmpdir()}/failed.rss`, rss, { flag: 'a' });
-    return;
-  }
-
-  await processItems(category, items.reverse());
-}
-
-async function processFeed(feed) {
-  lastdate = new Date(feed.last);
-  log.debug(`= ${feed.category}  ${feed.last}`);
-  await sleep(config.smf.feed_fetch_delay || 500);
-  try {
-    const res = await axios.get(feed.url, {
-      headers: {
-        Cookie: config.smf.cookie
+async function processPage(highwater, page, posts) {
+  let $ = cheerio.load(page);
+  $('.core_posts').each(function (i) {
+    let msg = {};
+    let $h5as = $(this).find('.topic_details>h5').first().find('a');
+    msg.board = $h5as.eq(0).attr('href');
+    msg.category = $h5as.eq(0).text();
+    msg.msgLink = $h5as.eq(1).attr('href');
+    msg.subject = unHTMLEntities($h5as.eq(1).text());
+    msg.msgid = msg.msgLink.replace(/.*#msg/, '');
+    if (msg.msgid > highwater) {
+      let $authDate = $(this).find('.topic_details .smalltext').first();
+      msg.author = $authDate.find('a').first().text();
+      let dtrego = /.*\son\s(\S+)(,|\sat)\s(\d\d:\d\d:\d\d).*/.exec($authDate.text());
+      if (dtrego[1] === 'Today') {
+        // FIXME: there is some ambiguity in "Today"
+        let d = new Date();
+        msg.dt = d.toISOString().slice(0, 11) + dtrego[3];
+      } else {
+        msg.dt = dtrego[1] + 'T' + dtrego[3];
       }
-    })
-    await processRSS(feed.category, res.data);
-  } catch (error) {
-    console.error(`processFeed ${feed.category} error ${error}`);
-    log.error(`processFeed ${feed.category} error ${error}`);
-    return;
-  }
+      let $post = $(this).find('.list_posts').first();
+      $("div.quote", $post).attr(
+        "style",
+        "color: #000; background-color: #d7daec; margin: 1px; padding: 6px; font-size: 1em; line-height: 1.5em; font-style: italic; font-family: Georgia, Times, serif;"
+      );
+      $("div.quoteheader,div.codeheader", $post).attr(
+        "style",
+        "color: #000; text-decoration: none; font-style: normal; font-weight: bold; font-size: 1em; line-height: 1.2em; padding-bottom: 4px;"
+      );
+      $(".meaction", $post).attr("style", "color: red;");
+      msg.post = $post.html();
+      console.log('------------');
+      console.dir(msg);
+      posts.push(msg);
+    }
+  });
+  return 0;
 }
 
 async function smf() {
-  const db = await sqlite.open({
-    filename: config.database.database,
-    driver: sqlite3.Database
-  });
-  config.db = db;
+  let highwater = getHighWaterMark();
+  const origmark = highwater;
+  let more = 10;
+  let start = 0;
+  let posts = [];
+  let res;
 
-  const rows = await db.all("SELECT * FROM feeds");
-  for (const row of rows) {
-    await processFeed(row);
+  console.log(`smf() highwater=${highwater}`);
+  // process Recent Posts pages until we get to messages we've seen
+  while (more > 0) {
+    try {
+      console.log(`fetching ${config.smf.recent_url}${start}`);
+      log.debug(`fetching ${config.smf.recent_url}${start}`);
+      res = await axios.get(config.smf.recent_url + start, {
+        headers: {
+          Cookie: config.smf.cookie
+        }
+      });
+    } catch (error) {
+      console.error(`Unable to fetch recent: ${config.smf.recent_url}${start} error ${error}`);
+      log.error(`Unable to fetch recent: ${config.smf.recent_url}${start} error ${error}`);
+      process.exit(2);
+    }
+    // process a page of recent posts
+    // returning
+    // more: integer increment to start, if 0 high water mark exceeded
+    // posts: an array of post objects
+    more = await processPage(highwater, res.data, posts);
+    start += more;
+
+    console.log('delay');
+    await sleep(config.smf.recent_fetch_delay || 5000);
+  }
+
+  if (highwater > origmark) {
+    console.log(`setting highwater ${highwater}`);
+    setHighWaterMark(highwater);
   }
 }
 

@@ -3,12 +3,12 @@ protocol = https:
 host = smfhost.example.com
 port = 443
 cookie = "SMFCookie463=abcabcabcabcabcabc; PHPSESSID=0abc0abc0abc;"
+recent_url = "https://ringo.net/forum/index.php?action=recent;start="
+highwatermark = "smf.mark"
+recent_fetch_delay = 10000
 feed_fetch_delay = 1000
 item_fetch_delay = 1000
 loglevel = error
-
-[database]
-database = smf.db
 
 [email]
 host = localhost
