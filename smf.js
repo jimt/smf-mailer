@@ -183,7 +183,6 @@ async function smf() {
   }
 
   for (let msg of posts) {
-    console.log(`mailing: ${msg.id}: ${msg.category} / ${msg.subject}`);
     mailer.sendMail({
       from: `"${msg.author}" ${config.email.sender}`,
       to: config.email.to,
