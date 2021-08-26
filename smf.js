@@ -43,10 +43,6 @@ log4js.configure({
 });
 const log = log4js.getLogger('smf');
 
-let feeds = [];
-let items = [];
-let lastdate = new Date("1970-1-1");
-
 let decodeEntity = (m, p1) => String.fromCharCode(parseInt(p1, 10));
 
 /**
@@ -58,6 +54,9 @@ function sleep(ms) {
   });
 }
 
+/**
+ * @returns {number} highwater
+ */
 function getHighWaterMark() {
   let highwater;
   try {
@@ -76,6 +75,9 @@ function getHighWaterMark() {
   return highwater;
 }
 
+/**
+ * @param {number} highwater
+ */
 function setHighWaterMark(highwater) {
   const highwaters = highwater + "";
   try {
@@ -90,6 +92,7 @@ function setHighWaterMark(highwater) {
 
 /**
  * @param {string} a
+ * @returns {string} a
  */
 function unHTMLEntities(a) {
   a = unescape(a);
@@ -172,7 +175,7 @@ async function smf() {
     }
     // process a page of recent posts
     // returning
-    // more: integer increment to start, if 0 high water mark exceeded
+    // more: integer increment to "start", if 0 high water mark exceeded
     // posts: an array of post objects
     more = await processPage(highwater, res.data, posts);
     start += more;
