@@ -1,4 +1,4 @@
-# smf
+# smf-mailer
 
 This is a simple JavaScript
 [Node.js](https://nodejs.org/en/) program
