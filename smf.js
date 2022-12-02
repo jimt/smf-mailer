@@ -1,9 +1,9 @@
 // @ts-check
 /*
 smf - read Simple Machine Forum Recent Posts & mail the articles
-      for SMF 2.0.x
+      for SMF 2.1.x
 
-Copyright 2011-2021 James Tittsler
+Copyright 2011-2022 James Tittsler
 @license MIT
 */
 
@@ -112,18 +112,18 @@ function unHTMLEntities(a) {
 async function processPage(highwater, page, posts) {
   let $ = cheerio.load(page);
   let more = 0;
-  $('.core_posts').each(function (i) {
+  $('div.windowbg').each(function (i) {
     let msg = {};
     let $h5as = $(this).find('.topic_details>h5').first().find('a');
     msg.board = $h5as.eq(0).attr('href');
     msg.category = $h5as.eq(0).text();
     msg.link = $h5as.eq(1).attr('href');
-    msg.subject = unHTMLEntities($h5as.eq(1).text().trim());
+    msg.subject = unHTMLEntities($h5as.eq(1).attr('title').trim());
     msg.id = msg.link.replace(/.*#msg/, '');
     if (msg.id > highwater) {
       let $authDate = $(this).find('.topic_details .smalltext').first();
       msg.author = $authDate.find('a').first().text();
-      let dtrego = /.*\son\s(\S+)(,|\sat)\s(\d\d:\d\d:\d\d).*/.exec($authDate.text());
+      let dtrego = /.*\s-\s(\S+)(,|\sat)\s(\d\d:\d\d:\d\d).*/.exec($authDate.text());
       if (dtrego[1] === 'Today') {
         // FIXME: there is some ambiguity in "Today"
         let d = new Date();
@@ -132,11 +132,13 @@ async function processPage(highwater, page, posts) {
         msg.pubDate = dtrego[1] + 'T' + dtrego[3];
       }
       let $post = $(this).find('.list_posts').first();
+      $("blockquote", $post).contents().unwrap().wrap('<div class="quote" />');
       $("div.quote", $post).attr(
         "style",
         "color: #000; background-color: #d7daec; margin: 1px; padding: 6px; font-size: 1em; line-height: 1.5em; font-style: italic; font-family: Georgia, Times, serif;"
       );
-      $("div.quoteheader,div.codeheader", $post).attr(
+      $("cite", $post).contents().unwrap().wrap('<div class="quoteheader" />');
+      $("div.quoteheader", $post).attr(
         "style",
         "color: #000; text-decoration: none; font-style: normal; font-weight: bold; font-size: 1em; line-height: 1.2em; padding-bottom: 4px;"
       );

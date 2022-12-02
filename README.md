@@ -7,6 +7,10 @@ to monitor the **Recent Posts** page(s) of a
 [Simple Machines Forum](http://www.simplemachines.org/)
 (SMF) and email all new articles discovered.
 
+**NB** The **main** branch has been updated to work
+with SMF 2.1.x.  If using SMF 2.0.x, use the version
+of this script tagged V2.0.0.
+
 ## History
 
 This was originally written in
