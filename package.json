@@ -5,9 +5,9 @@
   "dependencies": {
     "axios": "^0.27.2",
     "cheerio": "^1.0.0-rc.12",
-    "ini": "^3.0.1",
-    "log4js": "^6.7.1",
-    "nodemailer": "^6.8.0"
+    "ini": "^4.1.1",
+    "log4js": "^6.9.1",
+    "nodemailer": "^6.9.7"
   },
   "scripts": {
     "run": "node smf.js",
