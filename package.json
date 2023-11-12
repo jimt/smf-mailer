@@ -3,7 +3,7 @@
   "version": "4.1.0",
   "description": "Harvest recent postings from SMF",
   "dependencies": {
-    "axios": "^0.27.2",
+    "axios": "^1.6.0",
     "cheerio": "^1.0.0-rc.12",
     "ini": "^4.1.1",
     "log4js": "^6.9.1",
