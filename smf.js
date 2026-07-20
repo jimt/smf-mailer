@@ -35,12 +35,10 @@ if (config.email.user) {
 }
 let mailer = nodemailer.createTransport(smtpConfig);
 
-const log4js = require("log4js");
-log4js.configure({
-  appenders: { smf: { type: "file", filename: "smf.log" } },
-  categories: { default: { appenders: ["smf"], level: config.smf.loglevel } },
-});
-const log = log4js.getLogger("smf");
+const log = require("./logger")("info");
+if (config.smf.loglevel) {
+  log.setLevel(config.smf.loglevel);
+}
 
 let decodeEntity = (m, p1) => String.fromCharCode(parseInt(p1, 10));
 
