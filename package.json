@@ -1,11 +1,11 @@
 {
   "name": "smf",
-  "version": "4.4.1",
+  "version": "4.9.0",
   "description": "Harvest recent postings from SMF",
   "dependencies": {
-    "cheerio": "^1.0.0-rc.12",
-    "ini": "^5.0.0",
-    "nodemailer": "^7.0.9"
+    "cheerio": "^1.2.0",
+    "ini": "^6.0.0",
+    "nodemailer": "^9.0.3"
   },
   "scripts": {
     "run": "node smf.js",
@@ -16,6 +16,6 @@
   "repository": "github:jimt/smf",
   "license": "MIT",
   "engines": {
-    "node": ">=14"
+    "node": ">=20"
   }
 }
