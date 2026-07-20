@@ -3,19 +3,20 @@
  * Simple file logger
  *
  * Usage:
- *   const log = require("./logger")("info");   // default level
- *   log.setLevel("debug");                     // override later (e.g. from .rc)
+ *   import createLogger from "./logger.js";  // ESM
+ *   const log = createLogger("info");        // default level
+ *   log.setLevel("debug");                   // override later (e.g. from .rc)
  *   log.debug("message");
  *   log.info("message");
  *   log.warn("message");
  *   log.error("message");
  */
 
-const fs = require("fs");
-const path = require("path");
+import { appendFileSync } from "fs";
+import { join } from "path";
 
 const LEVELS = { debug: 0, info: 1, warn: 2, error: 3 };
-const LOGFILE = path.join(__dirname, "smf.log");
+const LOGFILE = join(import.meta.dirname, "smf.log");
 
 /**
  * Create a logger that writes timestamped lines to smf.log.
@@ -34,7 +35,7 @@ function createLogger(defaultLevel = "info") {
     const msg = args
       .map((a) => (a instanceof Error ? a.stack || a.message : String(a)))
       .join(" ");
-    fs.appendFileSync(LOGFILE, `[${ts}] [${level.toUpperCase()}] ${msg}\n`);
+    appendFileSync(LOGFILE, `[${ts}] [${level.toUpperCase()}] ${msg}\n`);
   }
 
   return {
@@ -52,4 +53,4 @@ function createLogger(defaultLevel = "info") {
   };
 }
 
-module.exports = createLogger;
+export default createLogger;

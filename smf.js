@@ -16,12 +16,13 @@ Copyright 2011-2025 James Tittsler
 //    pop and email
 //    delay
 
-const process = require("process");
-const cheerio = require("cheerio");
-const nodemailer = require("nodemailer");
-const fs = require("fs");
-const ini = require("ini");
-var config = ini.parse(fs.readFileSync("./smf.rc", "utf-8"));
+import process from "process";
+import * as cheerio from "cheerio";
+import nodemailer from "nodemailer";
+import { readFileSync, writeFileSync } from "fs";
+import ini from "ini";
+import createLogger from "./logger.js";
+const config = ini.parse(readFileSync("./smf.rc", "utf-8"));
 let smtpConfig = {
   host: config.email.host,
   port: config.email.port,
@@ -35,7 +36,7 @@ if (config.email.user) {
 }
 let mailer = nodemailer.createTransport(smtpConfig);
 
-const log = require("./logger")("info");
+const log = createLogger("info");
 if (config.smf.loglevel) {
   log.setLevel(config.smf.loglevel);
 }
@@ -58,7 +59,7 @@ function getHighWaterMark() {
   let highwater;
   try {
     highwater = parseInt(
-      fs.readFileSync(config.smf.highwatermark, "utf-8"),
+      readFileSync(config.smf.highwatermark, "utf-8"),
       10,
     );
   } catch (err) {
@@ -85,7 +86,7 @@ function getHighWaterMark() {
 function setHighWaterMark(highwater) {
   const highwaters = highwater + "";
   try {
-    fs.writeFileSync(config.smf.highwatermark, highwaters);
+    writeFileSync(config.smf.highwatermark, highwaters);
   } catch (error) {
     console.error(`Unable to write high water mark to ${config.smf.highwatermark}`);
     log.error(`Unable to write high water mark to ${config.smf.highwatermark}`);

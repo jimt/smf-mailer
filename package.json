@@ -1,21 +1,22 @@
 {
   "name": "smf",
-  "version": "4.9.0",
+  "version": "5.0.0",
   "description": "Harvest recent postings from SMF",
+  "type": "module",
   "dependencies": {
     "cheerio": "^1.2.0",
     "ini": "^6.0.0",
     "nodemailer": "^9.0.3"
   },
   "scripts": {
-    "run": "node smf.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "run": "bun smf.js",
+    "test": "bun test"
   },
   "main": "smf.js",
   "author": "Jim Tittsler <jimt@onjapan.net>",
   "repository": "github:jimt/smf",
   "license": "MIT",
   "engines": {
-    "node": ">=20"
+    "bun": ">=1.0"
   }
 }
