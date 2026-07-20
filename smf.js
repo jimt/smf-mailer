@@ -89,8 +89,8 @@ function setHighWaterMark(highwater) {
   try {
     fs.writeFileSync(config.smf.highwatermark, highwaters);
   } catch (error) {
-    console.error(`Unable to write high water mark to ${config.highwatermark}`);
-    log.error(`Unable to write high water mark to ${config.highwatermark}`);
+    console.error(`Unable to write high water mark to ${config.smf.highwatermark}`);
+    log.error(`Unable to write high water mark to ${config.smf.highwatermark}`);
     process.exit(4);
   }
   return true;
@@ -125,13 +125,17 @@ async function processPage(highwater, page, posts) {
     msg.category = $h5as.eq(0).text();
     msg.link = $h5as.eq(1).attr("href");
     msg.subject = unHTMLEntities($h5as.eq(1).attr("title").trim());
-    msg.id = msg.link.replace(/.*#msg/, "");
+    msg.id = parseInt(msg.link.replace(/.*#msg/, ""), 10);
     if (msg.id > highwater) {
       let $authDate = $(this).find(".topic_details .smalltext").first();
       msg.author = $authDate.find("a").first().text();
       let dtrego = /.*\s-\s(\S+)(,|\sat)\s(\d\d:\d\d:\d\d).*/.exec(
         $authDate.text(),
       );
+      if (!dtrego) {
+        log.error(`unable to parse date from message ${msg.id}`);
+        return;
+      }
       if (dtrego[1] === "Today") {
         // FIXME: there is some ambiguity in "Today"
         let d = new Date();
@@ -208,8 +212,8 @@ async function smf() {
   }
 
   for (let msg of posts) {
-    mailer.sendMail(
-      {
+    try {
+      await mailer.sendMail({
         from: `"${msg.author}" ${config.email.sender}`,
         to: config.email.to,
         subject: `[${msg.category}] ${msg.subject}`,
@@ -219,15 +223,12 @@ async function smf() {
           <div style="max-width:72ch;">${msg.post}</div>
           <p><a href="${msg.link}">Original message</a></p>
         </div></body></html>`,
-      },
-      function (error) {
-        if (error) {
-          log.error(`>>failed to send mail ${msg.id}`);
-          log.error(error);
-          process.exit(42);
-        }
-      },
-    );
+      });
+    } catch (error) {
+      log.error(`>>failed to send mail ${msg.id}`);
+      log.error(error);
+      process.exit(42);
+    }
     if (msg.id > highwater) {
       highwater = msg.id;
     }
