@@ -99,7 +99,6 @@ function setHighWaterMark(highwater) {
  * @returns {string} a
  */
 function unHTMLEntities(a) {
-  a = unescape(a);
   a = a.replace(/&amp;&#35;/g, "&#");
   a = a.replace(/&quot;/g, '"');
   a = a.replace(/&apos;/g, "'");
