@@ -1,11 +1,10 @@
 {
   "name": "smf",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "description": "Harvest recent postings from SMF",
   "type": "module",
   "dependencies": {
     "cheerio": "^1.2.0",
-    "ini": "^6.0.0",
     "nodemailer": "^9.0.3"
   },
   "scripts": {

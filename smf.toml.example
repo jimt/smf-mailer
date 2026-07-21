@@ -1,0 +1,18 @@
+[smf]
+protocol = "https:"
+host = "smfhost.example.com"
+port = 443
+cookie = "SMFCookie463=abcabcabcabcabcabc; PHPSESSID=0abc0abc0abc;"
+recent_url = "https://smfhost.example.com/forum/index.php?action=recent;start="
+highwatermark = "smf.mark"
+recent_fetch_delay = 10000
+email_delay = 5000
+loglevel = "error"
+
+[email]
+host = "localhost"
+port = 25
+# user = "user"
+# pass = "pass"
+sender = "<noreply@myemail.example.com>"
+to = "me@example.com"

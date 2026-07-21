@@ -14,6 +14,6 @@
 #
 node_modules
 # don't include the configuration file
-smf.rc
+smf.toml
 # don't include the high water mark
 smf.mark

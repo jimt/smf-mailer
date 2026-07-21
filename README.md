@@ -1,9 +1,9 @@
 # smf-mailer
 
 This is a simple JavaScript
-[Node.js](https://nodejs.org/en/) program
-that is intended to be run periodically (cron)
-to monitor the **Recent Posts** page(s) of a
+[Bun](https://bun.com) program
+that is intended to be run periodically (cron or
+systemd timer) to monitor the **Recent Posts** page(s) of a
 [Simple Machines Forum](http://www.simplemachines.org/)
 (SMF) and email all new articles discovered.
 

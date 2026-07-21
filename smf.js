@@ -19,10 +19,9 @@ Copyright 2011-2025 James Tittsler
 import process from "process";
 import * as cheerio from "cheerio";
 import nodemailer from "nodemailer";
-import { readFileSync, writeFileSync } from "fs";
-import ini from "ini";
+import { writeFileSync } from "fs";
 import createLogger from "./logger.js";
-const config = ini.parse(readFileSync("./smf.rc", "utf-8"));
+import config from "./smf.toml";
 let smtpConfig = {
   host: config.email.host,
   port: config.email.port,
