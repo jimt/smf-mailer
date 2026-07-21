@@ -9,7 +9,7 @@ systemd timer) to monitor the **Recent Posts** page(s) of a
 
 **NB** The **main** branch has been updated to work
 with SMF 2.1.x.  If using SMF 2.0.x, use the version
-of this script tagged V2.0.0.
+of this script tagged V2.0.0 with NodeJS.
 
 ## systemd
 
@@ -24,8 +24,6 @@ but moving to systemd provides centralized logging.
     # check it
     systemctl --user status smf.timer
     journalctl --user -f -u smf.service
-```
-
 ```
 
 ## History
