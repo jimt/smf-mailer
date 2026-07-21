@@ -1,0 +1,11 @@
+[Unit]
+Description=Fetch SMF recent posts and mail them
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/Projects/smf
+ExecStart=/usr/bin/env bun smf.js
+StandardOutput=journal
+StandardError=journal

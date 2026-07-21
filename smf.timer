@@ -1,0 +1,9 @@
+[Unit]
+Description=Fetch SMF recent posts and mail them (timer)
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=7min
+
+[Install]
+WantedBy=timers.target

@@ -3,7 +3,7 @@
 smf - read Simple Machine Forum Recent Posts & mail the articles
       for SMF 2.1.x
 
-Copyright 2011-2025 James Tittsler
+Copyright 2011-2026 James Tittsler
 @license MIT
 */
 
@@ -19,9 +19,11 @@ Copyright 2011-2025 James Tittsler
 import process from "process";
 import * as cheerio from "cheerio";
 import nodemailer from "nodemailer";
-import { writeFileSync } from "fs";
-import createLogger from "./logger.js";
+import { readFileSync, writeFileSync } from "fs";
 import config from "./smf.toml";
+
+const debug = String(config.smf.loglevel).toLowerCase() === "debug";
+
 let smtpConfig = {
   host: config.email.host,
   port: config.email.port,
@@ -34,11 +36,6 @@ if (config.email.user) {
   };
 }
 let mailer = nodemailer.createTransport(smtpConfig);
-
-const log = createLogger("info");
-if (config.smf.loglevel) {
-  log.setLevel(config.smf.loglevel);
-}
 
 let decodeEntity = (m, p1) => String.fromCharCode(parseInt(p1, 10));
 
@@ -65,15 +62,11 @@ function getHighWaterMark() {
     console.error(
       `unable to read high water mark from ${config.smf.highwatermark}`,
     );
-    log.error(
-      `unable to read high water mark from ${config.smf.highwatermark}`,
-    );
     process.exit(1);
   }
 
   if (isNaN(highwater) || highwater == 0) {
     console.error("high water mark not set");
-    log.error("high water mark not set");
     process.exit(1);
   }
   return highwater;
@@ -88,7 +81,6 @@ function setHighWaterMark(highwater) {
     writeFileSync(config.smf.highwatermark, highwaters);
   } catch (error) {
     console.error(`Unable to write high water mark to ${config.smf.highwatermark}`);
-    log.error(`Unable to write high water mark to ${config.smf.highwatermark}`);
     process.exit(4);
   }
   return true;
@@ -130,7 +122,7 @@ async function processPage(highwater, page, posts) {
         $authDate.text(),
       );
       if (!dtrego) {
-        log.error(`unable to parse date from message ${msg.id}`);
+        console.error(`unable to parse date from message ${msg.id}`);
         return;
       }
       if (dtrego[1] === "Today") {
@@ -173,7 +165,7 @@ async function smf() {
   // process Recent Posts pages until we get to messages we've seen
   while (more > 0) {
     try {
-      log.debug(`fetching ${config.smf.recent_url}${start}`);
+      if (debug) console.log(`fetching ${config.smf.recent_url}${start}`);
       const response = await fetch(config.smf.recent_url + start, {
         headers: {
           Cookie: config.smf.cookie,
@@ -189,9 +181,6 @@ async function smf() {
       };
     } catch (error) {
       console.error(
-        `Unable to fetch recent: ${config.smf.recent_url}${start} error ${error}`,
-      );
-      log.error(
         `Unable to fetch recent: ${config.smf.recent_url}${start} error ${error}`,
       );
       process.exit(2);
@@ -222,8 +211,7 @@ async function smf() {
         </div></body></html>`,
       });
     } catch (error) {
-      log.error(`>>failed to send mail ${msg.id}`);
-      log.error(error);
+      console.error(`>>failed to send mail ${msg.id}: ${error}`);
       process.exit(42);
     }
     if (msg.id > highwater) {

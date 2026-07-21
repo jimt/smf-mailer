@@ -11,6 +11,23 @@ systemd timer) to monitor the **Recent Posts** page(s) of a
 with SMF 2.1.x.  If using SMF 2.0.x, use the version
 of this script tagged V2.0.0.
 
+## systemd
+
+This program can be run from a user cron job,
+but moving to systemd provides centralized logging.
+
+```bash
+    mkdir -p ~/.config/systemd/user
+    cp smf.service smf.timer ~/.config/systemd/user/
+    systemctl --user daemon-reload
+    systemctl --user enable --now smf.timer
+    # check it
+    systemctl --user status smf.timer
+    journalctl --user -f -u smf.service
+```
+
+```
+
 ## History
 
 This was originally written in
